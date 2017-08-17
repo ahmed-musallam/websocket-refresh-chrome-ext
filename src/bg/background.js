@@ -1,81 +1,113 @@
 /* jshint undef: true, unused: true, esversion:6, node: true */
+/* globals Messenger, chrome, action, socketStore, WebSocket */
 
 let socket;
+let messenger = new Messenger();
+// get from storage
 
-function refreshTabs(regex){
-  chrome.tabs.query({},(tabs) => {
-    tabs.forEach((tab) => {
-      console.log("comparing ",tab.url);
-      if(tab.url.match(regex)){
-        chrome.tabs.reload(tab.id, ()=> console.log("reloaded tab!"));
-      }
-    });
+/**
+ * refresh tabs that match the regex
+ * @param {*} regex 
+ */
+function refreshTabs(regex) {
+  chrome.tabs.query({}, (tabs) => {
+    tabs
+    .filter(tab => tab.url.match(regex))
+    .map(tab => tab.id)
+    .forEach(tabId => chrome.tabs.reload(tabId, () => console.log("tab reloaded!")));
   });
 }
 
-function startSocket(errorCb){
+/**
+ * Open a websocket connection to the websocket server
+ * the url is optained from storage
+ * @param {*} errorCb 
+ */
+function openSocket(errorCb) {
   // get the socket url
-  get(prop_socket, (obj) => {
-      const socketUrl = obj[prop_socket];
-      console.log(socketUrl);
-      console.log("starting socket...");
-      socket = new WebSocket(socketUrl);
-      socket.onopen = (e) =>  errorCb();
-      socket.onerror = (e) => errorCb({msg:"Cannot start socket", e:e});
-      console.log("started");
-      // when this websocket recieves a message, it should be a regex string
-      // if the regex matches a browser tab url, the page will be reloaded.
-      socket.addEventListener('message', function (event) {
-        if(!event.data) return;
-        const regex = new RegExp(event.data, 'g');
-        refreshTabs(regex);
-      });
+  socketStore.get((socketUrl) => {
+    console.log(`starting socket at url ${socketUrl}...`);
+    socket = new WebSocket(socketUrl);
+    socket.onopen  = (e) =>  messenger.send({event:{type:e.type, code:e.code}}, () => {});
+    socket.onclose  = (e) =>  messenger.send({event:{type:e.type, code:e.code}}, () => {});
+    socket.onerror = (e) => messenger.send({event:{type:e.type, code:e.code}}, () => {});
+    // when this websocket recieves a message, it should be a regex string
+    // if the regex matches a browser tab url, the page will be reloaded.
+    socket.addEventListener('message', function (event) {
+      if (!event.data) return;
+      console.log(`socket recieved a regex: ${event.data}`);
+      const regex = new RegExp(event.data, 'g');
+      refreshTabs(regex);
+    });
+    console.log("end openSocket method");
+    return true;
   });
+  return true;
 }
 
-function stopSocket(errorCb){
-  if(socket){
-    try {
-      console.log("stopping socket...");
-      socket.close();
-    }
-    catch(e){
-      errorCb({msg:"Cannot stop socket", e:e});
-      console.log(e);
-      return;
-    }
-    console.log("stopped");
-    errorCb();
+/**
+ * Close the websocket server
+ * @param {*} errorCb 
+ */
+function closeSocket(errorCb) {
+  if (socket) {
+    socket.addEventListener('onclose', (e) => {
+      console.log("socket closed");
+      errorCb(); // empty, no errors
+    });
+    socket.addEventListener('onerror', (e) => errorCb({ msg: "Cannot stop socket", e: e }));
+
+    console.log("attempting to close socket...");
+    socket.close();
   }
 }
 
-function isOpen(cb){
-  if(!socket) cb(false);
-  else{
-    cb(socket.readyState === socket.OPEN)
+/**
+ * Convert numeric status to string
+ */
+function toStringStatus(status){
+   switch(status){
+      case WebSocket.OPEN: return "OPEN";
+      case WebSocket.CLOSED: return "CLOSED";
+      case WebSocket.CONNECTING: return "CONNECTING";
+      case WebSocket.CLOSING: return "CLOSING";
+    }
+};
+
+/**
+ * Check if the websocket server is open
+ * @param {*} cb 
+ */
+function socketStatus(cb) {
+  console.log("getting socket status");
+  let status;
+  if (socket){
+    status = socket.readyState;
   }
+  else status = WebSocket.CLOSED;
+
+  console.log(`The socket status is ${toStringStatus(status)}`);
+  cb(status);
 }
 
+/**
+ * Subscribe to chrome extension messages
+ */
+messenger.subscribe((message, sendResponse) => {
+  console.log(`background recieved a message: ${JSON.stringify(message)}`);
+  if (!message) {
+    sendResponse();
+    return;
+  }
+  if (message.action === action.OPEN) {
+    openSocket(sendResponse);
+  }
+  else if (message.action === action.CLOSE) {
+    closeSocket(sendResponse);
+  }
+  else if (message.action === action.STATUS) {
+    socketStatus(sendResponse);
+  }
+  return true; // indicates that response will be sent asyncronously
 
-chrome.extension.onMessage.addListener(
-
-  function(request, sender, sendResponse) {
-    if(!request){
-      sendResponse();
-      return;
-    }
-    if (request.action === "start"){
-      startSocket(sendResponse);
-    }
-    else if(request.action === "stop"){
-      stopSocket(sendResponse);
-    }
-    else if(request.action === "isOpen"){
-      isOpen(sendResponse);
-    }
-  });
-
-  const prop_socket = "socket";
-  const prop_regex = "regex";
-  const set = (name, val, cb) =>  chrome.storage.local.set({[name]: val}, (obj)=> cb ? cb(obj) : null);
-  const get = (name, cb) =>  chrome.storage.local.get(name, (obj)=> cb ? cb(obj) : null);
+});

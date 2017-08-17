@@ -1,8 +1,9 @@
 <!doctype html>
-<link rel="stylesheet" href="pure-css/forms-min.css">
+<link rel="stylesheet" href="css/forms-min.css">
+<link rel="stylesheet" href="css/styles.css">
 
 <div id="main">
-  <form class="pure-form pure-form-stacked">
+  <form class="pure-form pure-form-stacked" id="disconnected">
     <fieldset>
         <legend>websocket refresh plugin</legend>
         <label for="websocket">Websocket URL</label>
@@ -10,11 +11,17 @@
         <button type=button id="connect" class="pure-button pure-button-primary">Connect</button>
     </fieldset>
   </form>
-</div>
-<div id="connected">
-  <b>connected to <span id="socketUrl"></span></b>
-  <button type="submit" class="pure-button pure-button-primary" id="disconnect">Disconnect</button>
-</div>
+  <div id="connected">
+    <div>
+        <b>connected to <span id="socketUrl"></span></b>
+    </div>
+    <button type="submit" class="pure-button pure-button-primary" id="disconnect">Disconnect</button>
+  </div>
 <div id="errors">
 </div>
+</div>
+<script src="../api/action.js"></script>
+<script src="../api/messenger.js"></script>
+<script src="../api/socket_store.js"></script>
+<script src="../api/ws_close_reason.js"></script>
 <script src="browser_action.js"></script>

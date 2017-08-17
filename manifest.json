@@ -11,6 +11,9 @@
   "default_locale": "en",
   "background": {
     "scripts": [
+      "src/api/action.js",
+      "src/api/messenger.js",
+      "src/api/socket_store.js",
       "src/bg/background.js"
     ],
     "persistent": true
