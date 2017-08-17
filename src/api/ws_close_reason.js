@@ -4,7 +4,7 @@ function getCloseReason(code){
   var reason;
   // See http://tools.ietf.org/html/rfc6455#section-7.4.1
   if (code == 1000)
-    reason = "Normal closure, meaning that the purpose for which the connection was established has been fulfilled.";
+    reason = "The websocket client was closed successfully!";
   else if (code == 1001)
     reason = "An endpoint is \"going away\", such as a server going down or a browser having navigated away from a page.";
   else if (code == 1002)
@@ -16,7 +16,7 @@ function getCloseReason(code){
   else if (code == 1005)
     reason = "No status code was actually present.";
   else if (code == 1006)
-    reason = "The connection was closed abnormally, e.g., without sending or receiving a Close control frame";
+    reason = "Websocket code: 1006. Most Likely the target websocket server is not up. Full message: The connection was closed abnormally, e.g., without sending or receiving a Close control frame.";
   else if (code == 1007)
     reason = "An endpoint is terminating the connection because it has received data within a message that was not consistent with the type of the message (e.g., non-UTF-8 [http://tools.ietf.org/html/rfc3629] data within a text message).";
   else if (code == 1008)

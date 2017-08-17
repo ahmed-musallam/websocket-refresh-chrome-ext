@@ -5,6 +5,22 @@ let socket;
 let messenger = new Messenger();
 // get from storage
 
+//credit: https://davidwalsh.name/javascript-debounce-function
+function debounce(func, wait, immediate) {
+	var timeout;
+	return function() {
+		var context = this, args = arguments;
+		var later = function() {
+			timeout = null;
+			if (!immediate) func.apply(context, args);
+		};
+		var callNow = immediate && !timeout;
+		clearTimeout(timeout);
+		timeout = setTimeout(later, wait);
+		if (callNow) func.apply(context, args);
+	};
+}
+
 /**
  * refresh tabs that match the regex
  * @param {*} regex 
@@ -17,6 +33,8 @@ function refreshTabs(regex) {
     .forEach(tabId => chrome.tabs.reload(tabId, () => console.log("tab reloaded!")));
   });
 }
+
+const debouncedRefresh = debounce(refreshTabs, 150);
 
 /**
  * Open a websocket connection to the websocket server
@@ -37,7 +55,7 @@ function openSocket(errorCb) {
       if (!event.data) return;
       console.log(`socket recieved a regex: ${event.data}`);
       const regex = new RegExp(event.data, 'g');
-      refreshTabs(regex);
+      debouncedRefresh(regex);
     });
     console.log("end openSocket method");
     return true;
