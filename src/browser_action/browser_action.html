@@ -1,18 +1,20 @@
 <!doctype html>
 <link rel="stylesheet" href="pure-css/forms-min.css">
 
-<div id="mainPopup">
+<div id="main">
   <form class="pure-form pure-form-stacked">
     <fieldset>
         <legend>websocket refresh plugin</legend>
         <label for="websocket">Websocket URL</label>
         <input id="websocket" type="text" placeholder="localhost:8080">
-
-        <label for="regex">Regex</label>
-        <input id="regex" type="text" placeholder="/.*/">
-
-        <button type="submit" class="pure-button pure-button-primary">Test websocket</button>
+        <button type=button id="connect" class="pure-button pure-button-primary">Connect</button>
     </fieldset>
-</form>
-  <script src="browser_action.js"></script>
+  </form>
 </div>
+<div id="connected">
+  <b>connected to <span id="socketUrl"></span></b>
+  <button type="submit" class="pure-button pure-button-primary" id="disconnect">Disconnect</button>
+</div>
+<div id="errors">
+</div>
+<script src="browser_action.js"></script>

@@ -1,23 +1,57 @@
 /* jshint undef: true, unused: true, esversion:6, node: true */
 const socketField = document.querySelector("#websocket");
-const regexField = document.querySelector("#regex");
-const submitButton = document.querySelector("[type=submit]");
+const connectButton = document.querySelector("#connect");
+const disconnectButton = document.querySelector("#connected");
+const socketSpan = document.querySelector("#socketUrl");
+const mainDiv = document.querySelector("#main");
+const connectedDiv = document.querySelector("#connected");
+const errorsDiv = document.querySelector("#errors");
 
 const prop_socket = "socket";
-const prop_regex = "regex";
 
-const set = (name, val, cb) =>  chrome.storage.local.set({[name]: val}, (obj)=> cb ? cb(obj) : null);
-const get = (name, cb) =>  chrome.storage.local.get(name, (obj)=> cb ? cb(obj) : null);
+const set = (name, val, cb) => chrome.storage.local.set({ [name]: val }, (obj) => cb ? cb(obj) : null);
+const get = (name, cb) => chrome.storage.local.get(name, (obj) => cb ? cb(obj) : null);
 
-get(prop_socket, (obj) => socketField.value = obj[prop_socket]);
-get(prop_regex, (obj) => regexField.value = obj[prop_regex]);
+document.querySelector("form").addEventListener("onsubmit", (e) => e.preventDefault());
 
-submitButton.addEventListener("click", (e) => {
-    set(prop_socket, socketField.value);
-    set(prop_regex, regexField.value);
-    chrome.extension.sendMessage(
-        {greeting: "greeting"},
-        function (response) {
-            console.log("response: ",response);
-        });
+get(prop_socket, (obj) => {
+  socketField.value = obj[prop_socket];
+  socketSpan.innerHTML = obj[prop_socket];
+});
+
+function showError(error) {
+  console.log(error);
+  if(!error){
+    errorsDiv.innerHTML = "";
+  }
+  else{
+    console.error(error.msg, error.e);
+    errorsDiv.innerHTML = error.msg;
+  }
+}
+
+chrome.extension.sendMessage({ action: "isOpen" }, (response) => {
+  if(response){
+    mainDiv.style.display = "none";
+    connectedDiv.style.display = "block";
+  }
+  else{
+    mainDiv.style.display = "block";
+    connectedDiv.style.display = "none";
+  }
+}
+);
+
+connectButton.addEventListener("click", (e) => {
+  console.log("clicked!");
+  set(prop_socket, socketField.value);
+  chrome.extension.sendMessage({ action: "start" }, (err) => err ? showError(err) : null);
+});
+
+disconnectButton.addEventListener("click", (e) => {
+  console.log("clicked!");
+  set(prop_socket, socketField.value);
+  chrome.extension.sendMessage({ action: "stop" }, (err) => err ? showError(err) : null);
+  mainDiv.style.display = "block";
+  connectedDiv.style.display = "none";
 });
